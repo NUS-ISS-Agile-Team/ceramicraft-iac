@@ -1,0 +1,85 @@
+---
+- name: Bootstrap k3s + helm + argocd + unified secret
+  hosts: all
+  become: false
+  vars:
+    k3s_version: v1.32.0+k3s1
+    argocd_namespace: argocd
+    unified_secret_name: unified-secrets
+    unified_secret_file: secrets.env
+  environment:                         # ← 加这一行
+      KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+  tasks:
+    # 1. 装 k3s（单节点）
+    - name: Download k3s install script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+
+    - name: Install k3s server
+      shell: /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+        INSTALL_K3S_EXEC: "--write-kubeconfig-mode 644"
+
+    # 2. 装 helm
+    - name: Get helm install script
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get-helm.sh
+        mode: "0755"
+    - name: Run helm install
+      shell: /tmp/get-helm.sh
+
+    # 3. 创建统一 secret
+    - name: Read local k/v file
+      slurp:
+        src: "{{ unified_secret_file }}"
+      register: secret_b64
+      delegate_to: localhost
+
+    - name: Apply unified secret from local env file
+      shell: |
+        kubectl create secret generic ms-secret \
+          --from-env-file=/dev/stdin \
+          --dry-run=client -o yaml \
+        | kubectl apply -f -
+      args:
+        stdin: "{{ secret_b64.content | b64decode }}"
+
+    # 4. 装 argocd
+    - name: Add argo helm repo
+      shell: helm repo add argo https://argoproj.github.io/argo-helm
+    - name: Template ArgoCD values
+      template:
+        src: argocd-nodeport.yaml
+        dest: /tmp/argocd-values.yaml
+    - name: Install/upgrade argocd
+      shell: |
+        helm upgrade --install argocd argo/argo-cd \
+        -n {{ argocd_namespace }} --create-namespace \
+        -f /tmp/argocd-values.yaml --wait
+    # 5. obtain argocd initial password & ip
+    - name: Decode admin password
+      shell: |
+        kubectl -n {{ argocd_namespace }} get secret argocd-initial-admin-secret \
+        --template={{ "{{" }}.data.password{{ "}}" }} | base64 -d
+      register: argo_pwd
+    - name: Print ArgoCD access info
+      debug:
+        msg:
+          - "Admin user: admin"
+          - "Admin password: {{ argo_pwd.stdout }}"
+    # 6. apply apps-of-apps
+    - name: Copy app-of-apps.yaml to remote
+      copy:
+        src: "{{ playbook_dir }}/app-of-apps.yaml" 
+        dest: /tmp/app-of-apps.yaml
+        mode: '0644'
+
+    - name: Apply app-of-apps manifest
+      shell: |
+        kubectl apply -f /tmp/app-of-apps.yaml
+      register: app_result
