@@ -13,14 +13,14 @@ data "aws_availability_zones" "azs" {
   state = "available"
 }
 
-# 选取第一个 AZ
+# pick AZ
 locals {
   az = data.aws_availability_zones.azs.names[0]
 }
 
-# 计算不与 172.31.0.0/20 冲突的子网
-# 172.31.0.0/20 占用 172.31.0.0 - 172.31.15.255
-# 我们用 172.31.16.0/24 和 172.31.17.0/24（同属 172.31 大段，路由表可汇总）
+# get cidr not conflict with 172.31.0.0/20 
+# 172.31.0.0/20 = 172.31.0.0 - 172.31.15.255
+# user 172.31.16.0/24 and 172.31.17.0/24
 resource "aws_subnet" "public" {
   vpc_id                  = var.vpc_id
   cidr_block              = "172.31.16.0/24"
@@ -36,7 +36,7 @@ resource "aws_subnet" "private" {
   tags              = { Name = "private-new" }
 }
 
-# 公有路由表（复用或新建）
+# public route table
 resource "aws_route_table" "public" {
   vpc_id = var.vpc_id
   route { 
@@ -49,7 +49,7 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# 安全组
+# security group
 resource "aws_security_group" "k3s" {
   name_prefix = "k3s-demo-"
   vpc_id      = var.vpc_id

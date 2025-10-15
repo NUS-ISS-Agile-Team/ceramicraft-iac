@@ -11,7 +11,7 @@
       KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
   tasks:
-    # 1. 装 k3s（单节点）
+    # 1. install k3s（single node）
     - name: Download k3s install script
       get_url:
         url: https://get.k3s.io
@@ -24,7 +24,7 @@
         INSTALL_K3S_VERSION: "{{ k3s_version }}"
         INSTALL_K3S_EXEC: "--write-kubeconfig-mode 644"
 
-    # 2. 装 helm
+    # 2. install helm
     - name: Get helm install script
       get_url:
         url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -33,7 +33,7 @@
     - name: Run helm install
       shell: /tmp/get-helm.sh
 
-    # 3. 创建统一 secret
+    # 3. create secret
     - name: Read local k/v file
       slurp:
         src: "{{ unified_secret_file }}"
@@ -49,7 +49,7 @@
       args:
         stdin: "{{ secret_b64.content | b64decode }}"
 
-    # 4. 装 argocd
+    # 4. install argocd
     - name: Add argo helm repo
       shell: helm repo add argo https://argoproj.github.io/argo-helm
     - name: Template ArgoCD values

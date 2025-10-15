@@ -5,6 +5,7 @@ terraform.tfstate.backup
 .terraform.lock.hcl
 **/*.pem
 **/*.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

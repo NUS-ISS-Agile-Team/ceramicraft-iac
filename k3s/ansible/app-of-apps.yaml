@@ -78,6 +78,7 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -99,3 +100,43 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: merchant-frontend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NUS-ISS-Agile-Team/ceramicraft-argocd-deploy.git  
+    targetRevision: HEAD
+    path: vue_apps/overlays/merchant_frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: customer-frontend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NUS-ISS-Agile-Team/ceramicraft-argocd-deploy.git  
+    targetRevision: HEAD
+    path: vue_apps/overlays/customer_frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
