@@ -17,9 +17,9 @@
 1. 在此目录创建一个 `terraform.tfvars` 或在命令行传入变量。例如新建 `ocd/terraform.tfvars`：
 
    repo_url = "https://github.com/your/repo.git"
-   # 可选：
-   # public_key_path = "/Users/you/.ssh/id_rsa.pub"
-   # key_name = "ocd-deployer"
+   可选：
+   public_key_path = "/Users/you/.ssh/id_rsa.pub"
+   key_name = "ocd-deployer"
 
 2. 初始化并应用：
 
